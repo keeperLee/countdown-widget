@@ -1,0 +1,52 @@
+/**
+ * 预加载脚本 - 安全暴露 API 给渲染进程
+ * 通过 contextBridge 暴露受限的 IPC 接口
+ */
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('countdownAPI', {
+  /**
+   * 获取所有倒计时列表
+   * @returns {Promise<Array>} 倒计时数组
+   */
+  getAll: () => ipcRenderer.invoke('countdowns:get'),
+
+  /**
+   * 保存全部倒计时（覆盖写入）
+   * @param {Array} countdowns
+   * @returns {Promise<{success: boolean}>}
+   */
+  saveAll: (countdowns) => ipcRenderer.invoke('countdowns:save', countdowns),
+
+  /**
+   * 添加一个倒计时
+   * @param {Object} countdown - { title, date, color, emoji }
+   * @returns {Promise<Object>} 带有 id 的新倒计时
+   */
+  add: (countdown) => ipcRenderer.invoke('countdowns:add', countdown),
+
+  /**
+   * 删除指定 ID 的倒计时
+   * @param {number} id
+   * @returns {Promise<{success: boolean}>}
+   */
+  remove: (id) => ipcRenderer.invoke('countdowns:delete', id),
+
+  /**
+   * 监听倒计时更新事件（主进程通知刷新）
+   * @param {Function} callback
+   */
+  onUpdated: (callback) => {
+    ipcRenderer.on('countdowns:updated', callback);
+  },
+
+  /**
+   * 打开编辑窗口
+   */
+  openEdit: () => ipcRenderer.send('open:edit'),
+
+  /**
+   * 退出应用
+   */
+  quit: () => ipcRenderer.send('app:quit')
+});

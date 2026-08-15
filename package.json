@@ -1,0 +1,25 @@
+{
+  "name": "countdown-widget",
+  "version": "1.0.0",
+  "description": "桌面倒计时小组件 - 悬浮在桌面上的透明无边框倒计时",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": [
+    "electron",
+    "countdown",
+    "widget",
+    "桌面小组件",
+    "倒计时"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  },
+  "allowScripts": {
+    "electron@28.3.3": true
+  }
+}
