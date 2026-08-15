@@ -5,7 +5,9 @@
   "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron . --dev"
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:dir": "electron-builder --dir"
   },
   "keywords": [
     "electron",
@@ -17,9 +19,32 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^28.0.0"
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.keeperlee.countdown-widget",
+    "productName": "倒计时小组件",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        { "target": "dmg", "arch": ["arm64"] },
+        { "target": "zip", "arch": ["arm64"] }
+      ]
+    },
+    "dmg": {
+      "title": "倒计时小组件"
+    }
   },
   "allowScripts": {
-    "electron@28.3.3": true
+    "electron@28.3.3": true,
+    "electron-builder@24.13.3": true
   }
 }
