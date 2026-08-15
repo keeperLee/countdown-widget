@@ -6,6 +6,8 @@
 // 全局状态
 let countdowns = [];
 let isEditMode = false;
+let editingId = null;   // 当前正在编辑的倒计时 ID,null 表示新增模式
+let datePicker = null;  // flatpickr 实例
 
 // DOM 元素
 const widgetMode = document.getElementById('widget-mode');
@@ -184,7 +186,10 @@ function renderEditList() {
           <small>${formatDate(item.date)}</small>
         </div>
       </div>
-      <button class="btn-danger" onclick="removeCountdown(${item.id})">🗑️ 删除</button>
+      <div class="edit-item-actions">
+        <button class="btn-icon" title="编辑" onclick="startEdit(${item.id})">✏️</button>
+        <button class="btn-danger" onclick="removeCountdown(${item.id})">🗑️ 删除</button>
+      </div>
     </div>
   `).join('');
 }
@@ -193,42 +198,165 @@ function renderEditList() {
  * 绑定编辑模式事件
  */
 function bindEditEvents() {
-  // 添加按钮
-  document.getElementById('btn-add').addEventListener('click', addCountdown);
+  // 初始化日期时间选择器(flatpickr,中文界面,含时间)
+  datePicker = flatpickr(document.getElementById('form-date'), {
+    locale: 'zh',
+    enableTime: true,
+    time_24hr: true,
+    dateFormat: 'Y-m-d H:i',
+    defaultDate: null,
+    defaultHour: 0,
+    defaultMinute: 0,
+    minuteIncrement: 5
+  });
 
-  // 暴露删除函数到全局
+  initEmojiSelect();
+
+  // 添加/保存按钮
+  document.getElementById('btn-add').addEventListener('click', submitCountdown);
+
+  // 取消编辑按钮
+  document.getElementById('btn-cancel-edit').addEventListener('click', resetForm);
+
+  // 暴露删除/编辑函数到全局(列表项 onclick 调用)
   window.removeCountdown = removeCountdown;
+  window.startEdit = startEdit;
 }
 
 /**
- * 添加倒计时
+ * 初始化自定义图标选择器(emoji 网格下拉)
+ * 数据源来自隐藏的 <select id="form-emoji">,选中值仍写入该 select
  */
-async function addCountdown() {
+function initEmojiSelect() {
+  const select = document.getElementById('form-emoji');
+  const wrap = document.getElementById('emoji-select');
+  const btn = document.getElementById('emoji-select-btn');
+  const popup = document.getElementById('emoji-select-popup');
+
+  // 用 select 的 options 生成 emoji 网格
+  popup.innerHTML = Array.from(select.options).map(opt => {
+    const label = opt.textContent.replace(opt.value, '').trim();
+    return `<button type="button" class="emoji-select-item" data-value="${opt.value}" title="${label}">${opt.value}</button>`;
+  }).join('');
+
+  popup.addEventListener('click', (e) => {
+    const item = e.target.closest('.emoji-select-item');
+    if (!item) return;
+    setEmoji(item.dataset.value);
+    wrap.classList.remove('open');
+  });
+
+  btn.addEventListener('click', () => wrap.classList.toggle('open'));
+
+  // 点击组件外部时收起
+  document.addEventListener('click', (e) => {
+    if (!wrap.contains(e.target)) wrap.classList.remove('open');
+  });
+
+  setEmoji(select.value);
+}
+
+/**
+ * 设置图标选中值,并同步自定义选择器的显示
+ * @param {string} value - emoji 字符
+ */
+function setEmoji(value) {
+  const select = document.getElementById('form-emoji');
+  if (!Array.from(select.options).some(o => o.value === value)) {
+    value = select.options[0] ? select.options[0].value : '';
+  }
+  select.value = value;
+
+  const opt = select.options[select.selectedIndex];
+  document.getElementById('emoji-select-current').textContent = value;
+  document.getElementById('emoji-select-label').textContent =
+    opt ? opt.textContent.replace(value, '').trim() : '';
+
+  document.querySelectorAll('.emoji-select-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.value === value);
+  });
+}
+
+/**
+ * 把 Date 对象转成存储格式 YYYY-MM-DDTHH:mm:00(本地时区)
+ */
+function formatForStore(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+         `T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+}
+
+/**
+ * 切换表单为"编辑"外观
+ */
+function setFormMode(editing) {
+  document.getElementById('form-section-title').textContent = editing ? '编辑倒计时' : '添加倒计时';
+  document.getElementById('btn-add').textContent = editing ? '💾 保存修改' : '➕ 添加';
+  document.getElementById('btn-cancel-edit').style.display = editing ? 'block' : 'none';
+}
+
+/**
+ * 重置表单,回到新增模式
+ */
+function resetForm() {
+  editingId = null;
+  document.getElementById('form-title').value = '';
+  setEmoji('🎉');
+  document.getElementById('form-color').value = '#FF6B6B';
+  if (datePicker) datePicker.clear();
+  setFormMode(false);
+}
+
+/**
+ * 开始编辑某个倒计时:回填表单并滚动到表单
+ * @param {number} id
+ */
+function startEdit(id) {
+  const item = countdowns.find(c => c.id === id);
+  if (!item) return;
+
+  editingId = id;
+  document.getElementById('form-title').value = item.title || '';
+  setEmoji(item.emoji || '🎉');
+  document.getElementById('form-color').value = item.color || '#FF6B6B';
+  if (datePicker) datePicker.setDate(item.date, false);
+
+  setFormMode(true);
+  document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+/**
+ * 提交表单:新增或保存修改(取决于 editingId)
+ */
+async function submitCountdown() {
   const title = document.getElementById('form-title').value.trim();
-  const date = document.getElementById('form-date').value;
   const emoji = document.getElementById('form-emoji').value;
   const color = document.getElementById('form-color').value;
+  const selected = datePicker ? datePicker.selectedDates[0] : null;
 
   if (!title) {
     alert('请输入名称');
     return;
   }
-  if (!date) {
+  if (!selected) {
     alert('请选择日期时间');
     return;
   }
+  const date = formatForStore(selected);
 
-  await window.countdownAPI.add({ title, date, emoji, color });
-
-  // 清空表单
-  document.getElementById('form-title').value = '';
-  document.getElementById('form-date').value = '';
-
-  // 刷新列表
-  countdowns = await window.countdownAPI.getAll();
-  renderEditList();
-
-  alert('添加成功！');
+  if (editingId !== null) {
+    const result = await window.countdownAPI.update(editingId, { title, date, emoji, color });
+    resetForm();
+    countdowns = await window.countdownAPI.getAll();
+    renderEditList();
+    alert(result && result.success ? '修改成功！' : '修改失败：倒计时不存在');
+  } else {
+    await window.countdownAPI.add({ title, date, emoji, color });
+    resetForm();
+    countdowns = await window.countdownAPI.getAll();
+    renderEditList();
+    alert('添加成功！');
+  }
 }
 
 /**
@@ -239,6 +367,8 @@ async function removeCountdown(id) {
   if (!confirm('确定删除这个倒计时吗？')) return;
 
   await window.countdownAPI.remove(id);
+  // 若删除的正是正在编辑的条目,回到新增模式
+  if (editingId === id) resetForm();
   countdowns = await window.countdownAPI.getAll();
   renderEditList();
 }

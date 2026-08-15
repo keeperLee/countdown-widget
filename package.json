@@ -6,8 +6,12 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "build": "electron-builder",
-    "build:dir": "electron-builder --dir"
+    "build": "electron-builder --mac",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:all": "electron-builder --mac --win",
+    "build:dir": "electron-builder --dir",
+    "icon": "python3 scripts/make_icon.py"
   },
   "keywords": [
     "electron",
@@ -30,21 +34,63 @@
     },
     "files": [
       "src/**/*",
+      "node_modules/flatpickr/dist/**",
       "package.json"
     ],
     "mac": {
       "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
       "target": [
-        { "target": "dmg", "arch": ["arm64"] },
-        { "target": "zip", "arch": ["arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
       ]
     },
     "dmg": {
       "title": "倒计时小组件"
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "countdown-widget-Setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "倒计时小组件",
+      "language": "2052"
     }
   },
   "allowScripts": {
     "electron@28.3.3": true,
     "electron-builder@24.13.3": true
+  },
+  "dependencies": {
+    "flatpickr": "^4.6.13"
   }
 }

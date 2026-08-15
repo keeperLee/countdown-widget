@@ -258,6 +258,22 @@ ipcMain.handle('countdowns:delete', (event, id) => {
   return { success: true };
 });
 
+// 更新单个倒计时
+ipcMain.handle('countdowns:update', (event, id, countdown) => {
+  const list = loadCountdowns();
+  const index = list.findIndex(c => c.id === id);
+  if (index === -1) {
+    return { success: false, error: 'not_found' };
+  }
+  // 保留原 id,其余字段以提交内容为准
+  list[index] = { ...list[index], ...countdown, id };
+  saveCountdowns(list);
+  if (mainWindow) {
+    mainWindow.webContents.send('countdowns:updated');
+  }
+  return { success: true };
+});
+
 // 打开编辑窗口
 ipcMain.on('open:edit', () => {
   createEditWindow();

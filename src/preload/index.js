@@ -33,6 +33,14 @@ contextBridge.exposeInMainWorld('countdownAPI', {
   remove: (id) => ipcRenderer.invoke('countdowns:delete', id),
 
   /**
+   * 更新指定 ID 的倒计时
+   * @param {number} id
+   * @param {Object} countdown - { title, date, color, emoji }
+   * @returns {Promise<{success: boolean}>}
+   */
+  update: (id, countdown) => ipcRenderer.invoke('countdowns:update', id, countdown),
+
+  /**
    * 监听倒计时更新事件（主进程通知刷新）
    * @param {Function} callback
    */
