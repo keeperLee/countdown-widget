@@ -94,13 +94,11 @@ function renderCountdowns() {
  */
 function requestWidgetResize() {
   if (isEditMode || !window.countdownAPI || !window.countdownAPI.resizeWidget) return;
-  const grip = document.querySelector('.widget-grip');
-  const toolbar = document.querySelector('.widget-toolbar');
-  // 容器上下 padding(20) + grip(18) + 间距(约 16) + 工具栏(30) + 余量
+  const topbar = document.querySelector('.widget-topbar');
+  // 容器上下 padding(20) + 顶部栏(24) + 栏间距(8) + 余量
   const height = Math.ceil(
-    (grip ? grip.offsetHeight : 0) +
-    (toolbar ? toolbar.offsetHeight : 0) +
-    countdownList.scrollHeight + 84
+    (topbar ? topbar.offsetHeight : 0) +
+    countdownList.scrollHeight + 40
   );
   if (Math.abs(height - lastResizeHeight) > 1) {
     lastResizeHeight = height;
@@ -151,6 +149,84 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str || '';
   return div.innerHTML;
+}
+
+/**
+ * 统一的自定义模态弹窗(替代原生 alert/confirm)
+ * @param {Object} opts
+ *   title: 标题; message: 正文;
+ *   confirmText: 确认按钮文案(默认"确定");
+ *   cancelText: 取消按钮文案(默认"取消"),传 null 则只有确认按钮;
+ *   danger: true 时确认按钮为红色(用于删除等危险操作)
+ * @returns {Promise<boolean>} 点击确认 true,取消/遮罩/Esc false
+ */
+function showDialog(opts = {}) {
+  const {
+    title = '提示',
+    message = '',
+    confirmText = '确定',
+    cancelText = '取消',
+    danger = false
+  } = opts;
+
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'dialog-overlay';
+    overlay.innerHTML = `
+      <div class="dialog-card" role="dialog" aria-label="${escapeHtml(title)}">
+        <div class="dialog-icon ${danger ? 'danger' : ''}">${danger ? '⚠️' : '💬'}</div>
+        <h3 class="dialog-title">${escapeHtml(title)}</h3>
+        <p class="dialog-message">${escapeHtml(message)}</p>
+        <div class="dialog-buttons">
+          ${cancelText !== null ? `<button class="dialog-btn ghost" data-r="false">${escapeHtml(cancelText)}</button>` : ''}
+          <button class="dialog-btn primary ${danger ? 'danger' : ''}" data-r="true">${escapeHtml(confirmText)}</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const finish = (result) => {
+      overlay.classList.add('closing');
+      overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+      // 兜底:极端情况下 transitionend 不触发
+      setTimeout(() => overlay.isConnected && overlay.remove(), 400);
+      document.removeEventListener('keydown', onKey);
+      resolve(result);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') finish(false);
+      if (e.key === 'Enter') finish(true);
+    };
+    document.addEventListener('keydown', onKey);
+
+    overlay.addEventListener('click', (e) => {
+      const btn = e.target.closest('.dialog-btn');
+      if (btn) {
+        finish(btn.dataset.r === 'true');
+      } else if (e.target === overlay && cancelText !== null) {
+        finish(false);  // 点遮罩关闭(仅在有取消按钮时)
+      }
+    });
+
+    requestAnimationFrame(() => overlay.classList.add('open'));
+  });
+}
+
+/**
+ * 轻提示 toast(替代原生 alert 的成功/提示类反馈)
+ * @param {string} text
+ */
+function showToast(text) {
+  const toast = document.createElement('div');
+  toast.className = 'app-toast';
+  toast.textContent = text;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+    setTimeout(() => toast.isConnected && toast.remove(), 400);
+  }, 2200);
 }
 
 /**
@@ -359,11 +435,11 @@ async function submitCountdown() {
   const selected = datePicker ? datePicker.selectedDates[0] : null;
 
   if (!title) {
-    alert('请输入名称');
+    await showDialog({ title: '缺少名称', message: '请先给这个倒计时起个名字', cancelText: null });
     return;
   }
   if (!selected) {
-    alert('请选择日期时间');
+    await showDialog({ title: '缺少日期', message: '请选择目标日期和时间', cancelText: null });
     return;
   }
   const date = formatForStore(selected);
@@ -373,13 +449,17 @@ async function submitCountdown() {
     resetForm();
     countdowns = await window.countdownAPI.getAll();
     renderEditList();
-    alert(result && result.success ? '修改成功！' : '修改失败：倒计时不存在');
+    if (result && result.success) {
+      showToast('✅ 修改成功');
+    } else {
+      await showDialog({ title: '修改失败', message: '找不到该倒计时，可能已被删除', cancelText: null });
+    }
   } else {
     await window.countdownAPI.add({ title, date, emoji, color });
     resetForm();
     countdowns = await window.countdownAPI.getAll();
     renderEditList();
-    alert('添加成功！');
+    showToast('✅ 添加成功');
   }
 }
 
@@ -388,13 +468,23 @@ async function submitCountdown() {
  * @param {number} id
  */
 async function removeCountdown(id) {
-  if (!confirm('确定删除这个倒计时吗？')) return;
+  const item = countdowns.find(c => c.id === id);
+  const name = item ? item.title : '这个倒计时';
+  const confirmed = await showDialog({
+    title: '删除倒计时',
+    message: `确定删除「${name}」吗？删除后无法恢复。`,
+    confirmText: '删除',
+    cancelText: '取消',
+    danger: true
+  });
+  if (!confirmed) return;
 
   await window.countdownAPI.remove(id);
   // 若删除的正是正在编辑的条目,回到新增模式
   if (editingId === id) resetForm();
   countdowns = await window.countdownAPI.getAll();
   renderEditList();
+  showToast('🗑️ 已删除');
 }
 
 // 页面加载完成后初始化

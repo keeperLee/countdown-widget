@@ -49,19 +49,28 @@ body {
   -webkit-app-region: no-drag;
 }
 
-/* 顶部拖动把手(窗口移动入口,滚动列表本身不参与拖拽) */
+/* 顶部栏:把手(拖拽) + 操作按钮 */
+.widget-topbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 24px;
+}
+
+/* 拖动把手(窗口移动入口,滚动列表本身不参与拖拽) */
 .widget-grip {
   -webkit-app-region: drag;
+  flex: 1;
+  align-self: stretch;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 18px;
   font-size: 14px;
   color: rgba(255, 255, 255, 0.25);
   cursor: move;
   border-radius: 8px;
   transition: color 0.2s ease, background 0.2s ease;
-  flex-shrink: 0;
 }
 
 .widget-grip:hover {
@@ -205,36 +214,45 @@ body {
   letter-spacing: 0.05em;
 }
 
-/* 底部操作栏 - 鼠标悬停时显示 */
+/* 顶部操作按钮 - 鼠标悬停时淡入 */
 .widget-toolbar {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  gap: 6px;
   opacity: 0;
-  transform: translateY(4px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  flex-shrink: 0;
+  transform: translateX(6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
   /* 工具栏按钮不参与拖拽 */
   -webkit-app-region: no-drag;
 }
 
 .widget-container:hover .widget-toolbar {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateX(0);
 }
 
 .toolbar-btn {
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--border-soft);
+  width: 24px;
+  height: 24px;
+  border: 1px solid transparent;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #fff;
-  font-size: 13px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: var(--border-soft);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+.toolbar-btn#btn-quit:hover {
+  background: rgba(255, 82, 82, 0.65);
+  border-color: rgba(255, 82, 82, 0.5);
+  color: #fff;
 }
 
 .toolbar-btn:hover {
@@ -712,4 +730,156 @@ span.flatpickr-weekday {
 .flatpickr-months .flatpickr-prev-month:hover svg,
 .flatpickr-months .flatpickr-next-month:hover svg {
   fill: #fff;
+}
+
+/* ============================================
+ * 自定义模态弹窗(替代原生 alert/confirm)
+ * ============================================ */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 16, 0);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  transition: background 0.22s ease, backdrop-filter 0.22s ease, -webkit-backdrop-filter 0.22s ease;
+}
+
+.dialog-overlay.open {
+  background: rgba(10, 10, 16, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.dialog-overlay.closing {
+  background: rgba(10, 10, 16, 0);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+}
+
+.dialog-card {
+  width: min(320px, calc(100vw - 48px));
+  padding: 24px 24px 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0) 40%),
+              #232537;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  transform: scale(0.92) translateY(10px);
+  opacity: 0;
+  transition: transform 0.22s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.2s ease;
+}
+
+.dialog-overlay.open .dialog-card {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+.dialog-overlay.closing .dialog-card {
+  transform: scale(0.95) translateY(6px);
+  opacity: 0;
+}
+
+.dialog-icon {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.dialog-message {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  word-break: break-all;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.dialog-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.dialog-btn.ghost {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.dialog-btn.ghost:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dialog-btn.primary {
+  background: linear-gradient(135deg, var(--accent), #9a6cf6);
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(124, 108, 246, 0.35);
+}
+
+.dialog-btn.primary:hover {
+  filter: brightness(1.12);
+  box-shadow: 0 6px 18px rgba(124, 108, 246, 0.5);
+}
+
+.dialog-btn.primary.danger {
+  background: linear-gradient(135deg, #ff6b81, #ff4d6d);
+  box-shadow: 0 4px 14px rgba(255, 107, 129, 0.35);
+}
+
+.dialog-btn.primary.danger:hover {
+  box-shadow: 0 6px 18px rgba(255, 107, 129, 0.5);
+}
+
+.dialog-btn:active {
+  transform: scale(0.97);
+}
+
+/* ============================================
+ * 轻提示 toast
+ * ============================================ */
+.app-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%) translateY(16px);
+  z-index: 1100;
+  padding: 10px 20px;
+  background: rgba(35, 37, 55, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text-primary);
+  font-size: 13px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.app-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
