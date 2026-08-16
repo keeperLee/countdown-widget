@@ -58,7 +58,7 @@ body {
   height: 24px;
 }
 
-/* 拖动把手(窗口移动入口,滚动列表本身不参与拖拽) */
+/* 拖动把手(窗口移动入口,悬停挂件时才显示;不可见时仍是有效拖拽区) */
 .widget-grip {
   -webkit-app-region: drag;
   flex: 1;
@@ -70,7 +70,12 @@ body {
   color: rgba(255, 255, 255, 0.25);
   cursor: move;
   border-radius: 8px;
-  transition: color 0.2s ease, background 0.2s ease;
+  opacity: 0;
+  transition: opacity 0.25s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.widget-container:hover .widget-grip {
+  opacity: 1;
 }
 
 .widget-grip:hover {
