@@ -8,6 +8,7 @@ let countdowns = [];
 let isEditMode = false;
 let editingId = null;   // 当前正在编辑的倒计时 ID,null 表示新增模式
 let datePicker = null;  // flatpickr 实例
+let lastResizeHeight = 0;  // 上次请求的窗口高度,避免每秒重复请求
 
 // DOM 元素
 const widgetMode = document.getElementById('widget-mode');
@@ -60,6 +61,7 @@ async function loadAndRenderWidget() {
 function renderCountdowns() {
   if (!countdowns || countdowns.length === 0) {
     countdownList.innerHTML = '<div class="empty-tip">点击 ⚙️ 添加倒计时</div>';
+    requestWidgetResize();
     return;
   }
 
@@ -82,6 +84,28 @@ function renderCountdowns() {
       </div>
     `;
   }).join('');
+
+  requestWidgetResize();
+}
+
+/**
+ * 请求主进程按内容调整挂件窗口高度
+ * 少于上限时窗口贴合内容;超出屏幕上限后由列表内部滚动兜底
+ */
+function requestWidgetResize() {
+  if (isEditMode || !window.countdownAPI || !window.countdownAPI.resizeWidget) return;
+  const grip = document.querySelector('.widget-grip');
+  const toolbar = document.querySelector('.widget-toolbar');
+  // 容器上下 padding(20) + grip(18) + 间距(约 16) + 工具栏(30) + 余量
+  const height = Math.ceil(
+    (grip ? grip.offsetHeight : 0) +
+    (toolbar ? toolbar.offsetHeight : 0) +
+    countdownList.scrollHeight + 84
+  );
+  if (Math.abs(height - lastResizeHeight) > 1) {
+    lastResizeHeight = height;
+    window.countdownAPI.resizeWidget(height);
+  }
 }
 
 /**

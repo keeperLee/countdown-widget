@@ -49,6 +49,12 @@ contextBridge.exposeInMainWorld('countdownAPI', {
   },
 
   /**
+   * 请求按内容高度调整挂件窗口(主进程会做上下限裁剪)
+   * @param {number} height - 内容需要的高度(px)
+   */
+  resizeWidget: (height) => ipcRenderer.send('widget:resize', height),
+
+  /**
    * 打开编辑窗口
    */
   openEdit: () => ipcRenderer.send('open:edit'),

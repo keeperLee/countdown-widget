@@ -2,7 +2,7 @@
  * 倒计时桌面小组件 - 主进程入口
  * 负责创建窗口、系统托盘、数据持久化、窗口间通信
  */
-const { app, BrowserWindow, Tray, Menu, ipcMain, shell, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -277,6 +277,16 @@ ipcMain.handle('countdowns:update', (event, id, countdown) => {
 // 打开编辑窗口
 ipcMain.on('open:edit', () => {
   createEditWindow();
+});
+
+// 挂件按内容调整窗口高度(有上下限,超高时列表内部滚动)
+ipcMain.on('widget:resize', (event, height) => {
+  if (!mainWindow || !Number.isFinite(height)) return;
+  const { workArea } = screen.getPrimaryDisplay();
+  const maxHeight = Math.max(240, workArea.height - 120);
+  const clamped = Math.min(Math.max(Math.round(height), 180), maxHeight);
+  const [width] = mainWindow.getSize();
+  mainWindow.setSize(width, clamped);
 });
 
 // 退出应用

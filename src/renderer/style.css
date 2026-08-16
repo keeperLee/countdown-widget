@@ -41,15 +41,55 @@ body {
  * 悬浮小组件模式
  * ============================================ */
 .widget-container {
-  /* 整个组件区域可拖拽移动窗口 */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100vh;
+  padding: 10px 12px;
+  -webkit-app-region: no-drag;
+}
+
+/* 顶部拖动把手(窗口移动入口,滚动列表本身不参与拖拽) */
+.widget-grip {
   -webkit-app-region: drag;
-  padding: 14px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.25);
+  cursor: move;
+  border-radius: 8px;
+  transition: color 0.2s ease, background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.widget-grip:hover {
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .countdown-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
+  overflow-y: auto;
+  -webkit-app-region: no-drag;
+}
+
+/* 细滚动条,不破坏毛玻璃观感 */
+.countdown-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.countdown-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 2px;
+}
+
+.countdown-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* 单个倒计时卡片 */
@@ -170,10 +210,10 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 10px;
   opacity: 0;
   transform: translateY(4px);
   transition: opacity 0.3s ease, transform 0.3s ease;
+  flex-shrink: 0;
   /* 工具栏按钮不参与拖拽 */
   -webkit-app-region: no-drag;
 }
@@ -220,16 +260,38 @@ body {
 /* ============================================
  * 编辑模式
  * ============================================ */
+html {
+  height: 100%;
+}
+
 .edit-container {
+  height: 100vh;
+  overflow-y: auto;
   padding: 28px 26px;
   background:
     radial-gradient(1200px 500px at 85% -10%, rgba(124, 108, 246, 0.18), transparent 60%),
     radial-gradient(900px 400px at -10% 110%, rgba(76, 194, 255, 0.12), transparent 60%),
     var(--bg-deep);
   color: var(--text-primary);
-  min-height: 100vh;
   /* 编辑模式不可拖拽 */
   -webkit-app-region: no-drag;
+}
+
+.edit-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.edit-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+}
+
+.edit-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.edit-container::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .edit-container h1 {
