@@ -243,20 +243,16 @@ function bindWidgetEvents() {
     window.countdownAPI.quit();
   });
 
-  // 拖拽窗口：鼠标按住卡片区域拖动窗口
-  let isDragging = false;
-  countdownList.addEventListener('mousedown', (e) => {
-    // 排除按钮点击
-    if (e.target.tagName === 'BUTTON') return;
-    isDragging = true;
-  });
-
-  document.addEventListener('mouseup', () => {
-    isDragging = false;
-  });
-
-  // 使用 Electron 拖拽 API（通过 CSS: -webkit-app-region: drag）
-  // 这里使用 CSS 方式更流畅，已在 style.css 中设置
+  // 滚轮兜底:卡片是窗口拖拽区,部分平台上拖拽区收不到原生滚动,
+  // 若下一帧发现没滚就手动补上;原生滚动正常时不会重复滚动
+  countdownList.addEventListener('wheel', (e) => {
+    const before = countdownList.scrollTop;
+    requestAnimationFrame(() => {
+      if (countdownList.scrollTop === before) {
+        countdownList.scrollTop = before + e.deltaY;
+      }
+    });
+  }, { passive: true });
 }
 
 /**

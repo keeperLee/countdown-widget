@@ -84,7 +84,7 @@ body {
   gap: 10px;
   flex: 1;
   overflow-y: auto;
-  -webkit-app-region: no-drag;
+  overflow-x: hidden;  /* 卡片悬停放大 1.02 会产生横向溢出,避免出现横向滚动条 */
 }
 
 /* 细滚动条,不破坏毛玻璃观感 */
@@ -103,6 +103,8 @@ body {
 
 /* 单个倒计时卡片 */
 .countdown-card {
+  /* 卡片本身可拖拽移动窗口(滚轮兜底逻辑见 app.js) */
+  -webkit-app-region: drag;
   position: relative;
   display: flex;
   align-items: center;
